@@ -18,7 +18,7 @@
   </div>
 
   <div>
-		Generate Answer
+		Will Generate Answer
 		<textarea rows='10' cols='50' id='answer'>
 		</textarea>
 	</div>
@@ -26,8 +26,6 @@
   <div>
     <button id='start'>Start</button>
   </div>
-
-
 
   <div>
 		<button id='call'>call</button>
@@ -99,17 +97,31 @@ function onGetUserMediaSuccess(stream) {
 		var sdpConstraints = {
 			optional: [],
 			mandatory: {
-				OfferToReceiveAudio: true,
+				OfferToReceiveAudio: false,
 				OfferToReceiveVideo: true
 			}
 		}
 		console.log('Received remote offer', offerDesc)
-		window.pc.setRemoteDescription(offerDesc);
+    window.pc.setRemoteDescription(offerDesc)
+    .then(
+      onSetRemoteSuccess, 
+      onSetSessionDescriptionError
+      );
+
+
 		window.pc.createAnswer(sdpConstraints)
 			.then(
 			onCreateAnswerSuccess,
 			onCreateSessionDescriptionError
 			);
+}
+
+function onSetRemoteSuccess(pc) {
+  console.log(' setRemoteDescription complete');
+}
+
+function onSetSessionDescriptionError(error) {
+  console.log('Failed to set session description: ' + error.toString());
 }
 
 function onLocalIceCandidate(event) {

@@ -64,11 +64,16 @@ function call() {
   console.log('call');
   var answer = answerText.value;
   var answerDesc = new RTCSessionDescription(JSON.parse(answer));
-  handleAnswerFromPC2(answerDesc);
+  window.pc.setRemoteDescription(answerDesc)
+  .then(onSetRemoteSuccess, onSetSessionDescriptionError);
 }
 
-function handleAnswerFromPC2 (answerDesc) {
-  window.pc.setRemoteDescription(answerDesc)
+function onSetRemoteSuccess(pc) {
+  console.log(' setRemoteDescription complete');
+}
+
+function onSetSessionDescriptionError(error) {
+  console.log('Failed to set session description: ' + error.toString());
 }
 
 // var constraints = {audio: false, video: true};
@@ -83,10 +88,6 @@ function onGetUserMediaSuccess(stream) {
     window.stream = stream; // make variable available to browser console
     localVideo.srcObject = stream;
 
-    // var servers = null;
-    // var servers = {
-    //   "iceServers": [{ "url": "stun:stun.ekiga.net" }]
-    // };
     var configuration = {
       iceServers: [{
         urls: "stun:stun.services.mozilla.com",
@@ -117,8 +118,7 @@ function onGetUserMediaSuccess(stream) {
 function onLocalIceCandidate(event) {
   if (event.candidate) {
     console.log('on ice candiate' + event.candidate.candidate);
-    offerText
-  .value = JSON.stringify(pc.localDescription);
+    offerText.value = JSON.stringify(pc.localDescription);
   }
 }
 
