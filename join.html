@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>GetUserMedia实例</title>
+</head>
+
+<body>
+  Join Room
+  <!-- <video id="video" autoplay></video> -->
+  <video id='localVideo' autoplay playsinline></video>
+  <video id='remoteVideo' autoplay playsinline></video>
+
+  <div>
+	Paste offer
+    <textarea rows='10' cols='50' id='offer'>
+    </textarea>
+  </div>
+
+  <div>
+		Generate Answer
+		<textarea rows='10' cols='50' id='answer'>
+		</textarea>
+	</div>
+
+  <div>
+    <button id='start'>Start</button>
+  </div>
+
+
+
+  <div>
+		<button id='call'>call</button>
+	</div>
+
+</body>
+
+<script src='js/adapter.js'> </script>
+<script type='text/javascript'>
+var startButton = document.getElementById('start');
+var callButton = document.getElementById('call');
+var localVideo = document.getElementById('localVideo');
+var remoteVideo = document.getElementById('remoteVideo');
+var offerText = document.getElementById('offer');
+var answerText = document.getElementById('answer');
+startButton.onclick = start;
+callButton.onclick = call;
+
+function start() {
+  startButton.disabled = true;
+  navigator.mediaDevices.getUserMedia({
+    audio:false,
+    video:true
+  })
+  .then(onGetUserMediaSuccess)
+  .catch(onGetUserMediaError);
+}
+
+function call() {
+	callButton.disabled = false;
+	console.log('call');
+	var answer = answerText.value;
+	var answerDesc = new RTCSessionDescription(JSON.parse(answer));
+	handleAnswerFromPC2(answerDesc);
+}
+
+function handleOnaddstream (e) {
+  console.log('Got remote stream', e.stream);
+  remoteVideo.autoplay = true;
+  remoteVideo.srcObject = e.stream;
+}
+
+// var constraints = {audio: false, video: true};
+// var video = document.querySelector("video");
+function onGetUserMediaSuccess(stream) {
+  var videoTracks = stream.getVideoTracks();
+    console.log('Using video device: ' + videoTracks[0].label);
+    window.stream = stream; // make variable available to browser console
+    localVideo.srcObject = stream;
+
+    var configuration = {
+      iceServers: [{
+        urls: "stun:stun.services.mozilla.com",
+        username: "louis@mozilla.com",
+        credential: "webrtcdemo"
+      }, {
+        urls: ["stun:stun.example.com", "stun:stun-1.example.com"]
+      }]
+    };
+    window.pc = new RTCPeerConnection(configuration);
+    // console.log('create pc peer connection');
+	window.pc.onicecandidate = onLocalIceCandidate;
+	window.pc.onaddstream = handleOnaddstream;
+    window.pc.addStream(stream);
+
+	var offer = offerText.value;
+	var offerDesc = new RTCSessionDescription(JSON.parse(offer));
+
+		var sdpConstraints = {
+			optional: [],
+			mandatory: {
+				OfferToReceiveAudio: true,
+				OfferToReceiveVideo: true
+			}
+		}
+		console.log('Received remote offer', offerDesc)
+		window.pc.setRemoteDescription(offerDesc);
+		window.pc.createAnswer(sdpConstraints)
+			.then(
+			onCreateAnswerSuccess,
+			onCreateSessionDescriptionError
+			);
+}
+
+function onLocalIceCandidate(event) {
+  if (event.candidate) {
+    console.log('on ice candiate' + event.candidate.candidate);
+	answerText.value = JSON.stringify(pc.localDescription);
+  }
+}
+
+function onGetUserMediaError(error) {
+  console.log("navigator.getUserMedia error: ", error);
+}
+
+function onCreateSessionDescriptionError(error) {
+  trace('Failed to create session description: ' + error.toString());
+}
+
+function onCreateAnswerSuccess(desc) {
+  console.log('Answer from pc\n' + desc.sdp);
+  pc.setLocalDescription(desc).then(
+    function () {
+      onSetLocalSuccess(window.pc);
+    },
+    onSetSessionDescriptionError
+  );
+}
+
+function onSetLocalSuccess(pc) {
+  console.log('pc setLocalDescription complete');
+}
+
+function onSetSessionDescriptionError(error) {
+  console.log('Failed to set session description: ' + error.toString());
+}
+</script>
+
+</html>
